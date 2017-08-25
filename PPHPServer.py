@@ -3,7 +3,10 @@ import urlparse, cgi, os, threading #necessary
 from pphp import do #the whole point of this package
 
 class handler(BaseHTTPRequestHandler): #request handler
-    root = 'C:/Users/shghklh/Desktop/HTML Test/py/' #dont know how to not hardcode this
+    f = open('.root')
+    root = f.read().strip()
+    f.close()
+    del f
     def do_GET(self): #get requests
         try:
             pth = urlparse.urlparse(self.path) #path object
