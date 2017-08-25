@@ -1,14 +1,16 @@
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler #base server OP
-import urlparse, time, cgi, os, threading #necessary
+import urlparse, cgi, os, threading #necessary
 from pphp import do #the whole point of this package
 
 class handler(BaseHTTPRequestHandler): #request handler
-    root = '../HTML Test/py' #dont know how to not hardcode this
+    root = 'C:/Users/shghklh/Desktop/HTML Test/py/' #dont know how to not hardcode this
     def do_GET(self): #get requests
         try:
             pth = urlparse.urlparse(self.path) #path object
             path = pth.path #path string without anything else
+            print path
             path = self.indexify(path) #add index.something if it's a dir
+            print path
             if path is None: #if file not found by indexify
                     raise IOError('File not found') #catch that
             f = open(path) #get the file
@@ -74,9 +76,9 @@ class handler(BaseHTTPRequestHandler): #request handler
             self.send_error(404)
             self.end_headers()
     def indexify(self, path):
-        if not path.endswith('/'): #check if the path ends with /
-            path += '/' #make sure it does
         if os.path.isdir(self.root+path): #if the path is a directory
+            if not path.endswith('/'): #check if the path ends with /
+                path += '/' #make sure it does
             for index in ["index.html", "index.htm"]: #only current possibilities for names
                 index = os.path.join(self.root+path, index) #join path and index type
                 if os.path.exists(index): #if that file exists
@@ -85,16 +87,23 @@ class handler(BaseHTTPRequestHandler): #request handler
             if path != index: #if no matches were found
                 return None #None is handled by the dos
         else: #if it wasn't even a dir
-            return path #return it as is
+            return self.root+path #return it as is with the root
 
-class IOThread(threading.Thread):
-    def __init__(self, port, target=None):
-        self.port = port
-        self.target = target
-        threading.Thread.__init__()
-    def run(self):
-        if target:
-            target()
-        else:
-            httpd = HTTPServer(("127.0.0.1", self.port), handler)
-            httpd.serve_forever()
+lock = threading.Lock()
+
+def serve(port):
+    global lock
+    with lock:
+        httpd = HTTPServer(('192.168.1.184', port), handler)
+        print 'Serving %s on port %s...' % httpd.server_address
+    while 1:
+        with lock:
+            if raw_input('Press Enter to serve one request on %s:%s' % httpd.server_address):
+                print 'Stopping server on %s:%s' % httpd.server_address
+                break
+            else:
+                httpd.handle_request()
+
+for i in range(7000,7005):
+    t = threading.Thread(target=serve,args=(i,))
+    t.start()
