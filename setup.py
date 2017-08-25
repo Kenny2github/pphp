@@ -1,6 +1,6 @@
 from setuptools import setup
 
-f = open('README.rst', encoding='utf-8')
+f = open('README.rst', 'r')
 long_description = f.read()
 f.close()
 
