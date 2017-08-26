@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 f = open('README.rst', 'r')
 long_description = f.read()
@@ -6,12 +6,13 @@ f.close()
 
 setup(
 	name='pphp',
-	version='1.2.1a3',
+	version='1.2.2a1',
 	description='A spinoff of PHP in Python',
 	long_description=long_description,
 	url='https://kenny2github.github.io/pphp',
 	author='Ken Hilton',
 	author_email='kenny2minecraft@gmail.com',
+        packages=find_packages(),
 	license='GNU GPLv3',
 	classifiers=[
 		'Development Status :: 3 - Alpha',

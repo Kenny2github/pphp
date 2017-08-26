@@ -20,6 +20,7 @@ def do(html, _GET={}, _POST={}, _REQUEST={}, _SERVER={}):
     f = open('__DATABASE__.json', 'r')
     __db__ = json.loads(f.read().strip())
     f.close()
+    __pre__ = None #to get around a weird UnboundLocalError
     for __script__ in __scripts__: #for every script
         __pre__ = sys.stdout #backup of sys.stdout so that we can restore it later
         sys.stdout = StringIO() #replace stdout with something we can use to capture stdout
