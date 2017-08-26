@@ -1,21 +1,19 @@
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler #base server OP
-import urlparse, cgi, os, threading #necessary
+import urlparse, cgi, os, threading, sys, time #necessary
 from pphp import do #the whole point of this package
 
 class handler(BaseHTTPRequestHandler): #request handler
-    f = open('.root')
-    root = f.read().strip()
-    f.close()
-    del f
+    if len(sys.argv) > 1:
+        root = sys.argv[1].strip('"')
+    else:
+        root = raw_input('Enter path to root directory: ')
     def do_GET(self): #get requests
         try:
             pth = urlparse.urlparse(self.path) #path object
             path = pth.path #path string without anything else
-            print path
             path = self.indexify(path) #add index.something if it's a dir
-            print path
             if path is None: #if file not found by indexify
-                    raise IOError('File not found') #catch that
+                raise IOError('File not found') #catch that
             f = open(path) #get the file
             self.send_response(200) #send ok, no error was raised
             self.end_headers() #thats all the headers
@@ -92,21 +90,31 @@ class handler(BaseHTTPRequestHandler): #request handler
         else: #if it wasn't even a dir
             return self.root+path #return it as is with the root
 
-lock = threading.Lock()
+lock = threading.Lock() #lock object for synchronization
 
-def serve(port):
-    global lock
-    with lock:
-        httpd = HTTPServer(('192.168.1.184', port), handler)
-        print 'Serving %s on port %s...' % httpd.server_address
-    while 1:
-        with lock:
-            if raw_input('Press Enter to serve one request on %s:%s' % httpd.server_address):
-                print 'Stopping server on %s:%s' % httpd.server_address
-                break
-            else:
-                httpd.handle_request()
+if len(sys.argv) > 2: #if we have a second argument
+    addr, ports = sys.argv[2].split(':') #format is IP:(portmin, portmax[, portstep])
+else: #if we don't have a second argument
+    addr, ports = raw_input('Enter IP:(portmin, portmax[, portstep]) to use: ').split(':') #get input from console or whatever
 
-for i in range(7000,7005):
-    t = threading.Thread(target=serve,args=(i,))
-    t.start()
+def serve(port): #function to serve one port
+    global lock, addr #lock object needs to be global; address needs to be consistent
+    with lock: #for synced handling
+        httpd = HTTPServer((addr, port), handler) #start the server
+        print 'Serving %s on port %s...' % httpd.server_address #log starting server
+    while 1: #forever
+        with lock: #for synced handling
+            httpd.handle_request() #handle one request
+    with lock: #this will never happen
+        print 'Stopping server on %s:%s...' % httpd.server_address #log stopping server
+
+for i in range(*eval(ports, {'__builtins__':{}})): #for every port specified (evaluate tuple)
+    t = threading.Thread(target=serve,args=(int(i),)) #new thread for each port (make i an int)
+    t.daemon = True #so that Ctrl-C can stop it (ugly, I know)
+    t.start() #start the thread
+print 'Press Ctrl-C to stop all servers.' #log how to stop
+while 1: #then keep the main thread open
+    try:
+        time.sleep(1) #for termination
+    except KeyboardInterrupt: #catch it
+        raise SystemExit #raise this instead to make it less ugly
