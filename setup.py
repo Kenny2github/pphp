@@ -12,7 +12,7 @@ setup(
 	url='https://kenny2github.github.io/pphp',
 	author='Ken Hilton',
 	author_email='kenny2minecraft@gmail.com',
-        packages=find_packages(),
+        py_modules=['pphp'],
 	license='GNU GPLv3',
 	classifiers=[
 		'Development Status :: 3 - Alpha',
