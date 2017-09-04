@@ -54,10 +54,10 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler #base server OP
 import urlparse, threading, time #necessary
 
 class handler(BaseHTTPRequestHandler): #request handler
-    if len(sys.argv) > 1:
-        root = sys.argv[1].strip('"')
+    if len(sys.argv) > 1: #if we have a first argument
+        root = sys.argv[1].strip('"') #get the path from it
     else:
-        root = raw_input('Enter path to root directory: ')
+        root = os.getcwd() #assume it's the current dir
     def do_GET(self): #get requests
         try:
             pth = urlparse.urlparse(self.path) #path object
