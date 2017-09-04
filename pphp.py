@@ -57,7 +57,7 @@ class handler(BaseHTTPRequestHandler): #request handler
     if len(sys.argv) > 1: #if we have a first argument
         root = sys.argv[1].strip('"') #get the path from it
     else:
-        root = os.getcwd() #assume it's the current dir
+        root = raw_input("Enter path to root directory: ") #ask for it
     def do_GET(self): #get requests
         try:
             pth = urlparse.urlparse(self.path) #path object
@@ -71,7 +71,7 @@ class handler(BaseHTTPRequestHandler): #request handler
             self.wfile.write(do(f.read(), #contents of file
                                 _GET=urlparse.parse_qs(pth.query), #get data
                                 _REQUEST=dict(urlparse.parse_qs(pth.query).items()), #for consistency with PHP's $_REQUEST
-                                _SERVER={'PPHP_SELF': path, #path to file
+                                _SERVER={'PPHP_SELF': pth.path, #path to file
                                          'GATEWAY_INTERFACE': cgi.__version__, #inconsistent with PHP
                                          'SERVER_ADDR': self.server.server_address[0], #server address
                                          'SERVER_NAME': self.server.server_name, #server name
