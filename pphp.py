@@ -110,7 +110,7 @@ class handler(BaseHTTPRequestHandler): #request handler
                                 _GET=urlparse.parse_qs(pth.query),
                                 _POST=postvars, #pass post vars too
                                 _REQUEST=dict(urlparse.parse_qs(pth.query).items()+postvars.items()), #and make _REQUEST include postvars as well
-                                _SERVER={'PPHP_SELF':path,
+                                _SERVER={'PPHP_SELF':pth.path,
                                          'GATEWAY_INTERFACE':cgi.__version__,
                                          'SERVER_ADDR':self.server.server_address[0],
                                          'SERVER_NAME':self.server.server_name,
