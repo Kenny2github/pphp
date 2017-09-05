@@ -30,7 +30,7 @@ Some special globals:
 
 In _SERVER, the keys ``REQUEST_TIME, HTTP_ACCEPT, HTTP_ACCEPT_CHARSET, HTTP_HOST, HTTP_REFERER, HTTPS, REMOTE_HOST, SERVER_ADMIN, SERVER_SIGNATURE, SCRIPT_NAME, and SCRIPT_URI`` are all not available; and the key ``GATEWAY_INTERFACE`` returns the version of the ``cgi`` module, not the gateway interface.
 
-Data for a server can be stored using the global ``__db__``. This is simply a dictionary - you can store and retrieve values as such. Data in ``__db__`` is stored as JSON in the file ``__DATABASE__``, in the current working directory. Changes to ``__db__`` will only show up in ``__DATABASE__`` after all scripts have finished running.
+Data for a server can be stored using the global ``__db__``. This is simply a dictionary - you can store and retrieve values as such. Data in ``__db__`` is stored as JSON in the file ``__DATABASE__.json``, under ``~/.pphp`` on Mac or Linux or ``%appdata%/.pphp`` on Windows. Changes to ``__db__`` will only show up in ``__DATABASE__.json`` after all scripts have finished running. **WARNING**: Moving the file will reset that script's data!
 
 Thanks to:
 
