@@ -28,15 +28,15 @@ __all__ = ['do'] #define that this is the only thing we want to import for "from
 
 def do(html, server=None):
     #setup
-    if not '.pphp-config' in os.listdir(server.root): #if the config file isn't present
-        try: key = sys.argv[3] #get db key from arg
-        except IndexError: print('For a first run, please specify a database key in the third argument. Quitting...'); sys.exit()
-        with open(server.root+'/.pphp-config', 'w') as f: #write the key to the config file
-            f.write(key)
-    else: #if the config file is present
-        with open(server.root+'/.pphp-config', 'r') as f: #get the key from the file
-            key = f.read().strip()
     if server:
+        if not '.pphp-config' in os.listdir(server.root): #if the config file isn't present
+            try: key = sys.argv[3] #get db key from arg
+            except IndexError: print('For a first run, please specify a database key in the third argument. Quitting...'); sys.exit()
+            with open(server.root+'/.pphp-config', 'w') as f: #write the key to the config file
+                f.write(key)
+        else: #if the config file is present
+            with open(server.root+'/.pphp-config', 'r') as f: #get the key from the file
+                key = f.read().strip()
         _GET=urlparse.parse_qs(urlparse.urlparse(server.path).query) #get data
         if server.command == 'POST': #if this is POST
             ctype, pdict = cgi.parse_header(server.headers.getheader('content-type')) #parse post headers
