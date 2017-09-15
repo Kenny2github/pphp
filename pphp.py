@@ -98,104 +98,102 @@ def do(html, server):
     sys.stdout = __pre__ #restore stdout
     return html #return finished html
 
-if __name__ != '__main__': #if this was imported that's all we need
-    sys.exit() #so quit
+if __name__ == '__main__': #if this was imported that's all we need
+    try: from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler #py2
+    except ImportError: from http.server import HTTPServer, BaseHTTPRequestHandler #py3
+    import threading, time #necessary
+    try: import thread #py2
+    except ImportError: import _thread as thread #py3
 
-try: from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler #py2
-except ImportError: from http.server import HTTPServer, BaseHTTPRequestHandler #py3
-import threading, time #necessary
-try: import thread #py2
-except ImportError: import _thread as thread #py3
+    class handler(BaseHTTPRequestHandler): #request handler
+        if len(sys.argv) > 1: #if we have a first argument
+            root = sys.argv[1].strip('"') #get the path from it
+        else:
+            root = raw_input("Enter path to root directory: ") #ask for it
+        root = os.path.abspath(eu(root))
+        def do_GET(self): #get requests
+            try:
+                pth = urlparse.urlparse(self.path) #path object
+                path = pth.path #path string without anything else
+                path = self.indexify(path) #add index.something if it's a dir
+                if path is None: #if file not found by indexify
+                    raise IOError('File not found') #catch that
+                f = open(path) #get the file
+                self.send_response(200) #send ok, no error was raised
+                self.end_headers() #thats all the headers
+                self.wfile.write(do(f.read(), self)) #pass raw html and server state and get processed html
+                f.close() #close for completeness
+            except IOError: #file not found
+                self.send_error(404) #send not found error
+                self.end_headers() #end headers
+        def do_POST(self): #post requests
+            try:
+                pth = urlparse.urlparse(self.path) #path object
+                path = pth.path #path string without anything else
+                path = self.indexify(path) #and so on
+                if path is None:
+                        raise IOError
+                f = open(path)
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(do(f.read(), self))
+                f.close()
+            except IOError:
+                self.send_error(404)
+                self.end_headers()
+        def indexify(self, path):
+            if os.path.isdir(self.root+path): #if the path is a directory
+                if not path.endswith('/'): #check if the path ends with /
+                    path += '/' #make sure it does
+                for index in ["index.html", "index.htm"]: #only current possibilities for names
+                    index = os.path.join(self.root+path, index) #join path and index type
+                    if os.path.exists(index): #if that file exists
+                            path = index #path becomes full path
+                            return path #return full path
+                if path != index: #if no matches were found
+                    return None #None is handled by the dos
+            else: #if it wasn't even a dir
+                return self.root+path #return it as is with the root
 
-class handler(BaseHTTPRequestHandler): #request handler
-    if len(sys.argv) > 1: #if we have a first argument
-        root = sys.argv[1].strip('"') #get the path from it
-    else:
-        root = raw_input("Enter path to root directory: ") #ask for it
-    root = os.path.abspath(eu(root))
-    def do_GET(self): #get requests
-        try:
-            pth = urlparse.urlparse(self.path) #path object
-            path = pth.path #path string without anything else
-            path = self.indexify(path) #add index.something if it's a dir
-            if path is None: #if file not found by indexify
-                raise IOError('File not found') #catch that
-            f = open(path) #get the file
-            self.send_response(200) #send ok, no error was raised
-            self.end_headers() #thats all the headers
-            self.wfile.write(do(f.read(), self)) #pass raw html and server state and get processed html
-            f.close() #close for completeness
-        except IOError: #file not found
-            self.send_error(404) #send not found error
-            self.end_headers() #end headers
-    def do_POST(self): #post requests
-        try:
-            pth = urlparse.urlparse(self.path) #path object
-            path = pth.path #path string without anything else
-            path = self.indexify(path) #and so on
-            if path is None:
-                    raise IOError
-            f = open(path)
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(do(f.read(), self))
-            f.close()
-        except IOError:
-            self.send_error(404)
-            self.end_headers()
-    def indexify(self, path):
-        if os.path.isdir(self.root+path): #if the path is a directory
-            if not path.endswith('/'): #check if the path ends with /
-                path += '/' #make sure it does
-            for index in ["index.html", "index.htm"]: #only current possibilities for names
-                index = os.path.join(self.root+path, index) #join path and index type
-                if os.path.exists(index): #if that file exists
-                        path = index #path becomes full path
-                        return path #return full path
-            if path != index: #if no matches were found
-                return None #None is handled by the dos
-        else: #if it wasn't even a dir
-            return self.root+path #return it as is with the root
+    lock = threading.Lock() #lock object for synchronization
 
-lock = threading.Lock() #lock object for synchronization
+    if len(sys.argv) > 2: #if we have a second argument
+        addr, ports = sys.argv[2].strip('"').split(':') #format is IP:(portmin, portmax[, portstep])
+    else: #if we don't have a second argument
+        addr, ports = raw_input('Enter IP:(portmin, portmax[, portstep]) to use: ').split(':') #get input from console or whatever
 
-if len(sys.argv) > 2: #if we have a second argument
-    addr, ports = sys.argv[2].strip('"').split(':') #format is IP:(portmin, portmax[, portstep])
-else: #if we don't have a second argument
-    addr, ports = raw_input('Enter IP:(portmin, portmax[, portstep]) to use: ').split(':') #get input from console or whatever
+    ports = eval(ports) #evaluate tuple
+    if type(ports) == int: #wait it was int?
+        ports = (ports, ports+1) #make it a tuple
+    assert type(ports) == tuple, "expected tuple or int, got " + type(ports).__name__ #if it wasn't tuple or int, catch that
 
-ports = eval(ports) #evaluate tuple
-if type(ports) == int: #wait it was int?
-    ports = (ports, ports+1) #make it a tuple
-assert type(ports) == tuple, "expected tuple or int, got " + type(ports).__name__ #if it wasn't tuple or int, catch that
+    serving_ports = [] #ports being served
 
-serving_ports = [] #ports being served
+    def serve(port): #function to serve one port
+        global lock, addr, serving_ports #lock object needs to be global; address needs to be consistent; port list needs to be global
+        with lock: #synced start
+            httpd = HTTPServer((addr, port), handler) #start the server
+            print('Serving %s on port %s...' % httpd.server_address) #log starting server
+        while port in serving_ports: #while we're serving this port
+            httpd.handle_request() #handle one request
+        with lock: #synced stop
+            print('Stopping server on %s:%s...' % httpd.server_address) #log stopping server
 
-def serve(port): #function to serve one port
-    global lock, addr, serving_ports #lock object needs to be global; address needs to be consistent; port list needs to be global
-    with lock: #synced start
-        httpd = HTTPServer((addr, port), handler) #start the server
-        print('Serving %s on port %s...' % httpd.server_address) #log starting server
-    while port in serving_ports: #while we're serving this port
-        httpd.handle_request() #handle one request
-    with lock: #synced stop
-        print('Stopping server on %s:%s...' % httpd.server_address) #log stopping server
+    def control(): #console control
+        global serving_ports #port list needs to be global
+        while serving_ports: #while there are ports being served
+            i = int(raw_input('Enter port number to stop: ')) #get port number
+            try: #try to remove it from the list
+                i = serving_ports.index(i)
+                serving_ports.pop(i)
+            except ValueError: #do nothing if it's not there
+                pass
+        print('Stopped all servers') #no more servers
 
-def control(): #console control
-    global serving_ports #port list needs to be global
-    while serving_ports: #while there are ports being served
-        i = int(raw_input('Enter port number to stop: ')) #get port number
-        try: #try to remove it from the list
-            i = serving_ports.index(i)
-            serving_ports.pop(i)
-        except ValueError: #do nothing if it's not there
-            pass
-    print('Stopped all servers') #no more servers
+    for i in range(*ports): #for every port specified (evaluate tuple)
+        thread.start_new_thread(serve,(int(i),)) #new thread for each port (make i an int)
+        serving_ports.append(int(i)) #add port number to ports being served
 
-for i in range(*ports): #for every port specified (evaluate tuple)
-    thread.start_new_thread(serve,(int(i),)) #new thread for each port (make i an int)
-    serving_ports.append(int(i)) #add port number to ports being served
-
-thread.start_new_thread(control,()) #start control as well
-while serving_ports: #keep the main thread alive while there are ports being served
-    time.sleep(1)
+    thread.start_new_thread(control,()) #start control as well
+    while serving_ports: #keep the main thread alive while there are ports being served
+        time.sleep(1)
