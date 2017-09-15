@@ -6,7 +6,7 @@ f.close()
 
 setup(
 	name='pphp',
-	version='3.1.1',
+	version='3.1.2',
 	description='A spinoff of PHP in Python',
 	long_description=long_description,
 	url='https://kenny2github.github.io/pphp',

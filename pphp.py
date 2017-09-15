@@ -67,12 +67,13 @@ def do(html, server=None):
                  } #whoo
     __scripts__ = re.findall(r'<\?pphp.*?\?>', html, re.DOTALL) #get all the scripts
     __outputs__ = [] #outputs
-    with open(dbname, 'r') as f: #get database
-        __FULLDB__ = json.loads(f.read().strip()) #load json from file into py dict
-        try: __db__ = __FULLDB__[key] #try to get the database for this key
-        except KeyError: #wait what
-            __FULLDB__[key] = {} #oh we don't have a db here
-            __db__ = {} #make it ^^
+    if server:
+        with open(dbname, 'r') as f: #get database
+            __FULLDB__ = json.loads(f.read().strip()) #load json from file into py dict
+            try: __db__ = __FULLDB__[key] #try to get the database for this key
+            except KeyError: #wait what
+                __FULLDB__[key] = {} #oh we don't have a db here
+                __db__ = {} #make it ^^
     __pre__ = sys.stdout #to get around a weird UnboundLocalError
     for __script__ in __scripts__: #for every script
         __pre__ = sys.stdout #backup of sys.stdout so that we can restore it later
@@ -94,9 +95,10 @@ def do(html, server=None):
         __outputs__.append(__output__) #store the output
     for out in __outputs__: #for every output
         html = re.sub(r'<\?pphp.*?\?>', str(out), html, count=1, flags=re.DOTALL) #replace each script with its output
-    __FULLDB__[key] = __db__ #update full db
-    with open(dbname, 'w') as f: #open the db
-        f.write(json.dumps(__FULLDB__)) #update the file
+    if server:
+        __FULLDB__[key] = __db__ #update full db
+        with open(dbname, 'w') as f: #open the db
+            f.write(json.dumps(__FULLDB__)) #update the file
     sys.stdout = __pre__ #restore stdout
     return html #return finished html
 
