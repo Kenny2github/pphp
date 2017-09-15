@@ -26,43 +26,45 @@ else: #if we can't even tell what we're on
 
 __all__ = ['do'] #define that this is the only thing we want to import for "from pphp import *"
 
-def do(html, server):
+def do(html, server=None):
     #setup
     if not '.pphp-config' in os.listdir(server.root): #if the config file isn't present
-        key = raw_input('Enter your database key for this root ('+server.root+'): ') #ask for db key
+        try: key = sys.argv[3] #get db key from arg
+        except IndexError: print 'For a first run, please specify a database key in the third argument. Quitting...'; sys.exit()
         with open(server.root+'/.pphp-config', 'w') as f: #write the key to the config file
             f.write(key)
     else: #if the config file is present
         with open(server.root+'/.pphp-config', 'r') as f: #get the key from the file
             key = f.read().strip()
-    _GET=urlparse.parse_qs(urlparse.urlparse(server.path).query) #get data
-    if server.command == 'POST': #if this is POST
-        ctype, pdict = cgi.parse_header(server.headers.getheader('content-type')) #parse post headers
-        if ctype == 'multipart/form-data': #if this is multipart form data
-            _POST = cgi.parse_multipart(server.rfile, pdict) #parse data
-        elif ctype == 'application/x-www-form-urlencoded': #if this is application form data
-            length = int(server.headers.getheader('content-length')) #get length of data
-            _POST = cgi.parse_qs(server.rfile.read(length), keep_blank_values=1) #read length bytes of data (all the bytes)
-        else: #not recognized or not there
-            _POST = {} #empty post data
-    else: _POST = {} #it's not post, just make that empty
-    _REQUEST=_GET #wait
-    _REQUEST.update(_POST) #join the two together
-    path = urlparse.urlparse(server.path) #parsed path
-    _SERVER={'PPHP_SELF': path.path, #path to file
-             'GATEWAY_INTERFACE': cgi.__version__, #inconsistent with PHP
-             'SERVER_ADDR': server.server.server_address[0], #server address
-             'SERVER_NAME': server.server.server_name, #server name
-             'SERVER_SOFTWARE': 'PPHP/3.0', #custom :)
-             'SERVER_PROTOCOL': server.protocol_version, #server protocol version
-             'REQUEST_METHOD': server.command, #request method
-             'QUERY_STRING': path.query, #query string
-             'REMOTE_ADDR': server.client_address[0], #client address
-             'REMOTE_PORT': server.client_address[1], #client port
-             'SERVER_PORT': server.server.server_address[1], #server port
-             'SCRIPT_FILENAME': os.path.abspath(server.root+path.path), #absolute path to file
-             'PATH_TRANSLATED': os.path.realpath(os.path.abspath(server.root+path.path)) #translated path to file
-             } #whoo
+    if server:
+        _GET=urlparse.parse_qs(urlparse.urlparse(server.path).query) #get data
+        if server.command == 'POST': #if this is POST
+            ctype, pdict = cgi.parse_header(server.headers.getheader('content-type')) #parse post headers
+            if ctype == 'multipart/form-data': #if this is multipart form data
+                _POST = cgi.parse_multipart(server.rfile, pdict) #parse data
+            elif ctype == 'application/x-www-form-urlencoded': #if this is application form data
+                length = int(server.headers.getheader('content-length')) #get length of data
+                _POST = cgi.parse_qs(server.rfile.read(length), keep_blank_values=1) #read length bytes of data (all the bytes)
+            else: #not recognized or not there
+                _POST = {} #empty post data
+        else: _POST = {} #it's not post, just make that empty
+        _REQUEST=_GET #wait
+        _REQUEST.update(_POST) #join the two together
+        path = urlparse.urlparse(server.path) #parsed path
+        _SERVER={'PPHP_SELF': path.path, #path to file
+                 'GATEWAY_INTERFACE': cgi.__version__, #inconsistent with PHP
+                 'SERVER_ADDR': server.server.server_address[0], #server address
+                 'SERVER_NAME': server.server.server_name, #server name
+                 'SERVER_SOFTWARE': 'PPHP/3.0', #custom :)
+                 'SERVER_PROTOCOL': server.protocol_version, #server protocol version
+                 'REQUEST_METHOD': server.command, #request method
+                 'QUERY_STRING': path.query, #query string
+                 'REMOTE_ADDR': server.client_address[0], #client address
+                 'REMOTE_PORT': server.client_address[1], #client port
+                 'SERVER_PORT': server.server.server_address[1], #server port
+                 'SCRIPT_FILENAME': os.path.abspath(server.root+path.path), #absolute path to file
+                 'PATH_TRANSLATED': os.path.realpath(os.path.abspath(server.root+path.path)) #translated path to file
+                 } #whoo
     __scripts__ = re.findall(r'<\?pphp.*?\?>', html, re.DOTALL) #get all the scripts
     __outputs__ = [] #outputs
     with open(dbname, 'r') as f: #get database
@@ -99,6 +101,9 @@ def do(html, server):
     return html #return finished html
 
 if __name__ == '__main__': #if this was imported that's all we need
+    if len(sys.argv) <= 1:
+        print 'Usage: python -m pphp <root directory for server> <IP> [db key if this is the first run for this root]'
+        sys.exit(1)
     try: from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler #py2
     except ImportError: from http.server import HTTPServer, BaseHTTPRequestHandler #py3
     import threading, time #necessary
@@ -106,10 +111,7 @@ if __name__ == '__main__': #if this was imported that's all we need
     except ImportError: import _thread as thread #py3
 
     class handler(BaseHTTPRequestHandler): #request handler
-        if len(sys.argv) > 1: #if we have a first argument
-            root = sys.argv[1].strip('"') #get the path from it
-        else:
-            root = raw_input("Enter path to root directory: ") #ask for it
+        root = sys.argv[1].strip('"') #get the path from arg
         root = os.path.abspath(eu(root))
         def do_GET(self): #get requests
             try:
@@ -157,11 +159,7 @@ if __name__ == '__main__': #if this was imported that's all we need
 
     lock = threading.Lock() #lock object for synchronization
 
-    if len(sys.argv) > 2: #if we have a second argument
-        addr, ports = sys.argv[2].strip('"').split(':') #format is IP:(portmin, portmax[, portstep])
-    else: #if we don't have a second argument
-        addr, ports = raw_input('Enter IP:(portmin, portmax[, portstep]) to use: ').split(':') #get input from console or whatever
-
+    addr, ports = sys.argv[2].strip('"').split(':') #format is IP:(portmin, portmax[, portstep])
     ports = eval(ports) #evaluate tuple
     if type(ports) == int: #wait it was int?
         ports = (ports, ports+1) #make it a tuple
