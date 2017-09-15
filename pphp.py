@@ -30,7 +30,7 @@ def do(html, server=None):
     #setup
     if not '.pphp-config' in os.listdir(server.root): #if the config file isn't present
         try: key = sys.argv[3] #get db key from arg
-        except IndexError: print 'For a first run, please specify a database key in the third argument. Quitting...'; sys.exit()
+        except IndexError: print('For a first run, please specify a database key in the third argument. Quitting...'); sys.exit()
         with open(server.root+'/.pphp-config', 'w') as f: #write the key to the config file
             f.write(key)
     else: #if the config file is present
@@ -102,7 +102,7 @@ def do(html, server=None):
 
 if __name__ == '__main__': #if this was imported that's all we need
     if len(sys.argv) <= 1:
-        print 'Usage: python -m pphp <root directory for server> <IP> [db key if this is the first run for this root]'
+        print('Usage: python -m pphp <root directory for server> <IP> [db key if this is the first run for this root]')
         sys.exit(1)
     try: from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler #py2
     except ImportError: from http.server import HTTPServer, BaseHTTPRequestHandler #py3
