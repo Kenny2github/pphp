@@ -21,6 +21,7 @@ Example:
 Some special globals:
 
 * ``echo(text)`` - this is equivalent to sys.stdout.write(text)
+* ``escape(text)`` - this is equivalent to PHP's ``htmlspecialchars`` - escapes special HTML characters.
 * ``__script__`` - this is the entire script currently being executed
 * ``__db__`` - this is the server's database, more documentation below
 * ``_GET`` - this is the GET data as a dictionary

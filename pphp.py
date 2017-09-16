@@ -79,6 +79,7 @@ def do(html, server=None):
         __pre__ = sys.stdout #backup of sys.stdout so that we can restore it later
         sys.stdout = StringIO() #replace stdout with something we can use to capture stdout
         echo = sys.stdout.write #define keyword echo
+        escape = cgi.escape
         try: exec __script__[7:-2] #execute code (without the tag)
         except: #an error ocurred, what now?
             sys.stdout.close() #close the StringIO
