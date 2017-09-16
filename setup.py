@@ -6,7 +6,7 @@ f.close()
 
 setup(
 	name='pphp',
-	version='3.2.0',
+	version='3.3.0',
 	description='A spinoff of PHP in Python',
 	long_description=long_description,
 	url='https://kenny2github.github.io/pphp',
@@ -15,12 +15,13 @@ setup(
         py_modules=['pphp'],
 	license='GNU GPLv3',
 	classifiers=[
-		'Development Status :: 3 - Alpha',
+		'Development Status :: 4 - Beta',
 		'Intended Audience :: Developers',
 		'Topic :: Internet :: WWW/HTTP :: HTTP Servers',
 		'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 		'Programming Language :: Python :: 2.7',
+                'Programming Language :: Python :: 3',
 	],
 	keywords='http php server',
-	python_requires='<3'
+	python_requires='>=2.7'
 )

@@ -48,8 +48,19 @@ def do(html, server=None):
             else: #not recognized or not there
                 _POST = {} #empty post data
         else: _POST = {} #it's not post, just make that empty
-        _REQUEST=_GET #wait
-        _REQUEST.update(_POST) #join the two together
+        for k, v in _GET.items():
+            del _GET[k]
+            if type(v) == list:
+                _GET[cgi.escape(k)] = [cgi.escape(sv) for sv in v]
+            else:
+                _GET[cgi.escape(k)] = cgi.escape(v)
+        for k, v in _POST.items():
+            del _POST[k]
+            if type(v) == list:
+                _POST[cgi.escape(k)] = [cgi.escape(sv) for sv in v]
+            else:
+                _POST[cgi.escape(k)] = cgi.escape(v)
+        _REQUEST=dict(_GET, **_POST) #join the two together
         path = urlparse.urlparse(server.path) #parsed path
         _SERVER={'PPHP_SELF': path.path, #path to file
                  'GATEWAY_INTERFACE': cgi.__version__, #inconsistent with PHP
@@ -103,7 +114,7 @@ def do(html, server=None):
     sys.stdout = __pre__ #restore stdout
     return html #return finished html
 
-if __name__ == '__main__': #if this was imported that's all we need
+if __name__ == '__main__':
     if len(sys.argv) <= 1:
         print('Usage: python -m pphp <root directory for server> <IP> [db key if this is the first run for this root]')
         sys.exit(1)
