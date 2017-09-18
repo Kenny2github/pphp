@@ -37,7 +37,7 @@ def do(html, server=None):
         else: #if the config file is present
             with open(server.root+'/.pphp-config', 'r') as f: #get the key from the file
                 key = f.read().strip()
-        _GET=urlparse.parse_qs(urlparse.urlparse(server.path).query) #get data
+        _GET=urlparse.parse_qs(urlparse.urlparse(server.path).query, keep_blank_values=1) #get data
         if server.command == 'POST': #if this is POST
             ctype, pdict = cgi.parse_header(server.headers.getheader('content-type')) #parse post headers
             if ctype == 'multipart/form-data': #if this is multipart form data
