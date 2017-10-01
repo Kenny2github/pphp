@@ -76,42 +76,52 @@ def do(html, server=None):
                  'SCRIPT_FILENAME': os.path.abspath(server.root+path.path), #absolute path to file
                  'PATH_TRANSLATED': os.path.realpath(os.path.abspath(server.root+path.path)) #translated path to file
                  } #whoo
-    __scripts__ = re.findall(r'<\?pphp.*?\?>', html, re.DOTALL) #get all the scripts
-    __outputs__ = [] #outputs
+    scripts = re.findall(r'<\?pphp.*?\?>', html, re.DOTALL) #get all the scripts
+    outputs = [] #outputs
     if server:
         with open(dbname, 'r') as f: #get database
-            __FULLDB__ = json.loads(f.read().strip()) #load json from file into py dict
-            try: __db__ = __FULLDB__[key] #try to get the database for this key
+            FULLDB = json.loads(f.read().strip()) #load json from file into py dict
+            try: db = FULLDB[key] #try to get the database for this key
             except KeyError: #wait what
-                __FULLDB__[key] = {} #oh we don't have a db here
-                __db__ = {} #make it ^^
-    __pre__ = sys.stdout #to get around a weird UnboundLocalError
-    for __script__ in __scripts__: #for every script
-        __pre__ = sys.stdout #backup of sys.stdout so that we can restore it later
+                FULLDB[key] = {} #oh we don't have a db here
+                db = {} #make it ^^
+    pre = sys.stdout #to get around a weird UnboundLocalError
+    for script in scripts: #for every script
+        pre = sys.stdout #backup of sys.stdout so that we can restore it later
         sys.stdout = StringIO() #replace stdout with something we can use to capture stdout
         echo = sys.stdout.write #define keyword echo
         escape = cgi.escape
-        try: exec __script__[7:-2] #execute code (without the tag)
+        try:
+            exec script[7:-2] in {'__builtins__': __builtins__,
+                                  '_SERVER': _SERVER,
+                                  '_GET': _GET,
+                                  '_POST': _POST,
+                                  '_REQUEST': _REQUEST,
+                                  '__server__': server,
+                                  '__db__': db,
+                                  'echo': sys.stdout.write,
+                                  'escape': cgi.escape
+                                  } #execute code (with custom globals)
         except: #an error ocurred, what now?
             sys.stdout.close() #close the StringIO
-            sys.stdout = __pre__ #restore normal stdout
+            sys.stdout = pre #restore normal stdout
             html = '<!doctype html><head><title>Error</title><style>* {color:red} div {font-family:monospace}</style></head><body><h1>Exception happened during processing of code</h1><div>' #starter for error
             trace = traceback.format_exc().split('\n') #get traceback
             for i in trace: #for every line
                 html += cgi.escape(i).replace(' ', '&nbsp;')+'<br/>' #add it
             html += '</div></body></html>' #close
             return html #return finished error
-        __output__ = sys.stdout.getvalue() #get stdout value
+        output = sys.stdout.getvalue() #get stdout value
         sys.stdout.close() #close for completeness
-        sys.stdout = __pre__ #restore original stdout
-        __outputs__.append(__output__) #store the output
-    for out in __outputs__: #for every output
+        sys.stdout = pre #restore original stdout
+        outputs.append(output) #store the output
+    for out in outputs: #for every output
         html = re.sub(r'<\?pphp.*?\?>', str(out), html, count=1, flags=re.DOTALL) #replace each script with its output
     if server:
-        __FULLDB__[key] = __db__ #update full db
+        FULLDB[key] = db #update full db
         with open(dbname, 'w') as f: #open the db
-            f.write(json.dumps(__FULLDB__)) #update the file
-    sys.stdout = __pre__ #restore stdout
+            f.write(json.dumps(FULLDB)) #update the file
+    sys.stdout = pre #restore stdout
     return html #return finished html
 
 if __name__ == '__main__':
@@ -135,28 +145,15 @@ if __name__ == '__main__':
                 if path is None: #if file not found by indexify
                     raise IOError('File not found') #catch that
                 f = open(path) #get the file
-                self.send_response(200) #send ok, no error was raised
+                self.send_response(202) #send accepted
+                html = do(f.read(), self)
                 self.end_headers() #thats all the headers
-                self.wfile.write(do(f.read(), self)) #pass raw html and server state and get processed html
+                self.wfile.write(html) #pass raw html and server state and get processed html
                 f.close() #close for completeness
             except IOError: #file not found
                 self.send_error(404) #send not found error
                 self.end_headers() #end headers
-        def do_POST(self): #post requests
-            try:
-                pth = urlparse.urlparse(self.path) #path object
-                path = pth.path #path string without anything else
-                path = self.indexify(path) #and so on
-                if path is None:
-                        raise IOError
-                f = open(path)
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.write(do(f.read(), self))
-                f.close()
-            except IOError:
-                self.send_error(404)
-                self.end_headers()
+        do_POST = do_DELETE = do_PUT = do_GET
         def indexify(self, path):
             if os.path.isdir(self.root+path): #if the path is a directory
                 if not path.endswith('/'): #check if the path ends with /
@@ -205,7 +202,7 @@ if __name__ == '__main__':
     for i in range(*ports): #for every port specified (evaluate tuple)
         thread.start_new_thread(serve,(int(i),)) #new thread for each port (make i an int)
         serving_ports.append(int(i)) #add port number to ports being served
-
+    time.sleep(0.1)
     thread.start_new_thread(control,()) #start control as well
     while serving_ports: #keep the main thread alive while there are ports being served
         time.sleep(1)
